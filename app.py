@@ -4,7 +4,7 @@ from apikey import apikey
 import streamlit as st
 from langchain.llms import OpenAI
 from langchain.prompts import PromptTemplate
-from langchain.chains import LLMChain, SimpleSequentialChain
+from langchain.chains import LLMChain, SimpleSequentialChain, SequentialChain
 
 os.environ['OPENAI_API_KEY'] = apikey
 
@@ -25,12 +25,14 @@ script_template = PromptTemplate(
 
 # LLMs
 llm = OpenAI(temperature=0.9)
-title_chain = LLMChain(llm=llm, prompt=title_template, verbose=True) # setting verbose to true so output is more readable
-script_chain = LLMChain(llm=llm, prompt=script_template, verbose=True) 
-sequential_chain = SimpleSequentialChain(chains=[title_chain, script_chain], verbose=True) # chain run title_chain first to generate video title for script_chain 
+title_chain = LLMChain(llm=llm, prompt=title_template, verbose=True, output_key='title') # setting verbose to true so output is more readable
+script_chain = LLMChain(llm=llm, prompt=script_template, verbose=True, output_key='script') 
+sequential_chain = SequentialChain(chains=[title_chain, script_chain], input_variables=['topic'], output_variables=['title', 'script'] ,verbose=True) # chain run title_chain first to generate video title for script_chain. SequentialChain outputs multiple chain of outputs
+
+# sequential_chain = SimpleSequentialChain(chains=[title_chain, script_chain], verbose=True) # chain run title_chain first to generate video title for script_chain. SimpleSequentialChain will output the last output
 
 # Showing response on screen if there is a response
 if prompt:
-    response = sequential_chain.run(prompt) # passing sequential chain as response
-    st.write(response)
-
+    response = sequential_chain({'topic':prompt}) # passing sequential chain as response
+    st.write(response['title'])
+    st.write(response['script'])
